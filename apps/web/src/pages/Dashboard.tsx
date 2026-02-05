@@ -26,6 +26,7 @@ export function DashboardPage() {
     const [locations, setLocations] = useState<any[]>([]);
     const [departments, setDepartments] = useState<any[]>([]);
     const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+    const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
 
     useEffect(() => {
         const fetchMasterData = async () => {
@@ -45,7 +46,13 @@ export function DashboardPage() {
                         .eq('is_approved', false)
                         .order('created_at', { ascending: false });
 
-                    if (pendings) setPendingUsers(pendings);
+                    if (pendings) {
+                        setPendingUsers(pendings);
+                        // Initialize selected roles as 'Staff' for everyone
+                        const initialRoles: Record<string, string> = {};
+                        pendings.forEach((u: any) => initialRoles[u.id] = 'Staff');
+                        setSelectedRoles(initialRoles);
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching master data:', error);
@@ -55,13 +62,16 @@ export function DashboardPage() {
     }, [user]);
 
     const handleApproveUser = async (userId: string, userName: string) => {
-        if (!confirm(`Setujui akun untuk ${userName}?`)) return;
+        const roleToAssign = selectedRoles[userId] || 'Staff';
+
+        if (!confirm(`Setujui akun untuk ${userName} sebagai ${roleToAssign}?`)) return;
 
         try {
             const { error } = await supabase
                 .from('users')
                 .update({
                     is_approved: true,
+                    role: roleToAssign,
                     approved_by: user?.fullname
                 })
                 .eq('id', userId);
@@ -70,7 +80,7 @@ export function DashboardPage() {
 
             // Remove from list
             setPendingUsers(prev => prev.filter(u => u.id !== userId));
-            alert(`Akun ${userName} berhasil disetujui!`);
+            alert(`Akun ${userName} berhasil disetujui sebagai ${roleToAssign}!`);
         } catch (err: any) {
             alert('Gagal menyetujui akun: ' + err.message);
         }
@@ -303,8 +313,28 @@ export function DashboardPage() {
                                         <User size={14} className="text-gray-400" />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-sm text-white">{u.fullname} <span className="text-xs text-gray-500">({u.role})</span></p>
+                                        <p className="font-medium text-sm text-white">{u.fullname}</p>
                                         <p className="text-xs text-gray-500">{u.email}</p>
+
+                                        {/* Role Selection */}
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="text-xs text-indigo-400">Jadikan:</span>
+                                            <select
+                                                value={selectedRoles[u.id] || 'Staff'}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onChange={(e) => setSelectedRoles(prev => ({ ...prev, [u.id]: e.target.value }))}
+                                                className="bg-white/5 border border-white/10 rounded-lg text-xs px-2 py-1 text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                                            >
+                                                <option value="Staff" className="bg-dark-card">Staff</option>
+                                                {/* Only Manager & Owner can promote to Supervisor/Manager */}
+                                                {['Manager', 'Owner'].includes(user?.role || '') && (
+                                                    <>
+                                                        <option value="Supervisor" className="bg-dark-card text-blue-400">Supervisor</option>
+                                                        <option value="Manager" className="bg-dark-card text-indigo-400">Manager</option>
+                                                    </>
+                                                )}
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">

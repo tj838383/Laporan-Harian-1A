@@ -474,10 +474,10 @@ export function ReportDetailPage() {
 
                     {/* Status */}
                     {/* Status - Dual Verification */}
-                    <div className="shrink-0 flex flex-col gap-3 items-end justify-center min-w-[100px]">
+                    <div className="shrink-0 flex flex-col gap-2 items-end justify-center">
                         {!report.approved_by_spv && !report.approved_by_manager && (
-                            <span className="text-warning text-xs font-bold bg-warning/10 px-3 py-1 rounded-full border border-warning/20">
-                                MENUNGGU VERIFIKASI
+                            <span className="text-warning text-[10px] font-bold bg-warning/10 px-2 py-1 rounded-full border border-warning/20 whitespace-nowrap">
+                                MENUNGGU VERIF
                             </span>
                         )}
 

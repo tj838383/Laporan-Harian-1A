@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useReports, useReportStats } from '../hooks/useReports';
-import { Filter, MapPin, Building2, Clock, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
+import { Filter, MapPin, Building2, Clock, CheckCircle2, AlertCircle, FileText, User, Check, X } from 'lucide-react';
 import { formatDistanceToNow, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { supabase } from '../lib/supabase';
@@ -25,6 +25,7 @@ export function DashboardPage() {
     // Master Data
     const [locations, setLocations] = useState<any[]>([]);
     const [departments, setDepartments] = useState<any[]>([]);
+    const [pendingUsers, setPendingUsers] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchMasterData = async () => {
@@ -35,12 +36,70 @@ export function DashboardPage() {
                 ]);
                 if (locs.data) setLocations(locs.data);
                 if (depts.data) setDepartments(depts.data);
+
+                // Fetch Pending Users (Only for authorized roles)
+                if (['Supervisor', 'Manager', 'Owner'].includes(user?.role || '')) {
+                    const { data: pendings } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('is_approved', false)
+                        .order('created_at', { ascending: false });
+
+                    if (pendings) setPendingUsers(pendings);
+                }
             } catch (error) {
                 console.error('Error fetching master data:', error);
             }
         };
         fetchMasterData();
-    }, []);
+    }, [user]);
+
+    const handleApproveUser = async (userId: string, userName: string) => {
+        if (!confirm(`Setujui akun untuk ${userName}?`)) return;
+
+        try {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    is_approved: true,
+                    approved_by: user?.fullname
+                })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            // Remove from list
+            setPendingUsers(prev => prev.filter(u => u.id !== userId));
+            alert(`Akun ${userName} berhasil disetujui!`);
+        } catch (err: any) {
+            alert('Gagal menyetujui akun: ' + err.message);
+        }
+    };
+
+    const handleRejectUser = async (userId: string, userName: string) => {
+        if (!confirm(`Tolak dan hapus akun ${userName}?`)) return;
+
+        try {
+            // In Supabase Auth, deleting user requires service key usually, 
+            // but we can try deleting from public table first if that triggers trigger, 
+            // or just leave it unapproved. 
+            // For now, let's just delete from public.users if RLS allows, 
+            // but standard flow might be just ignoring it. 
+            // Let's TRY to delete from users table.
+
+            const { error } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            setPendingUsers(prev => prev.filter(u => u.id !== userId));
+            alert(`Akun ${userName} ditolak.`);
+        } catch (err: any) {
+            alert('Gagal menolak akun (mungkin butuh akses admin): ' + err.message);
+        }
+    };
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -225,6 +284,47 @@ export function DashboardPage() {
                             <option value="month" className="bg-dark-card">Bulan Ini</option>
                             <option value="all" className="bg-dark-card">Semua Tanggal</option>
                         </select>
+                    </div>
+                </div>
+            )}
+
+            {/* Pending Users Approval Section */}
+            {pendingUsers.length > 0 && (
+                <div className="mb-6 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
+                    <h2 className="text-sm font-semibold text-indigo-400 uppercase tracking-wide flex items-center gap-2 mb-3">
+                        <User size={16} />
+                        Permintaan Akun Baru ({pendingUsers.length})
+                    </h2>
+                    <div className="space-y-2">
+                        {pendingUsers.map(u => (
+                            <div key={u.id} className="bg-dark-card p-3 rounded-lg flex items-center justify-between border border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                                        <User size={14} className="text-gray-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-sm text-white">{u.fullname} <span className="text-xs text-gray-500">({u.role})</span></p>
+                                        <p className="text-xs text-gray-500">{u.email}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleApproveUser(u.id, u.fullname); }}
+                                        className="p-1.5 bg-success/20 text-success hover:bg-success/30 rounded-lg transition-colors"
+                                        title="Setujui"
+                                    >
+                                        <Check size={16} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleRejectUser(u.id, u.fullname); }}
+                                        className="p-1.5 bg-danger/20 text-danger hover:bg-danger/30 rounded-lg transition-colors"
+                                        title="Tolak"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

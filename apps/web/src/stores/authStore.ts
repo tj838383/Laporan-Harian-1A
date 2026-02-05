@@ -36,12 +36,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     .eq('id', session.user.id)
                     .single()
 
-                set({
-                    session,
-                    user: profile,
-                    isAuthenticated: true,
-                    isLoading: false
-                })
+                if (profile && !profile.is_approved) {
+                    await supabase.auth.signOut()
+                    set({ session: null, user: null, isAuthenticated: false, isLoading: false })
+                } else {
+                    set({
+                        session,
+                        user: profile,
+                        isAuthenticated: true,
+                        isLoading: false
+                    })
+                }
             } else {
                 set({ isLoading: false })
             }
@@ -60,10 +65,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                             .eq('id', session.user.id)
                             .single()
 
-                        set({ session, user: profile, isAuthenticated: true, isLoading: false })
+                        if (profile && !profile.is_approved) {
+                            await supabase.auth.signOut()
+                            set({ session: null, user: null, isAuthenticated: false, isLoading: false })
+                        } else {
+                            set({ session, user: profile, isAuthenticated: true, isLoading: false })
+                        }
                     } else {
-                        // Just update session, keep existing user
-                        set({ session, isAuthenticated: true, isLoading: false })
+                        // Check if current user is approved (in case it changed)
+                        if (!currentUser.is_approved) {
+                            await supabase.auth.signOut()
+                            set({ session: null, user: null, isAuthenticated: false, isLoading: false })
+                        } else {
+                            // Just update session, keep existing user
+                            set({ session, isAuthenticated: true, isLoading: false })
+                        }
                     }
                 } else if (event === 'SIGNED_OUT') {
                     set({ session: null, user: null, isAuthenticated: false })
@@ -91,6 +107,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 .select('*')
                 .eq('id', data.user.id)
                 .single()
+
+            // CHECK APPROVAL STATUS
+            if (profile && !profile.is_approved) {
+                await supabase.auth.signOut()
+                return { error: 'Akun Anda belum disetujui oleh Supervisor/Manager. Mohon tunggu persetujuan.' }
+            }
 
             set({ session: data.session, user: profile, isAuthenticated: true })
         }

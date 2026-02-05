@@ -63,20 +63,21 @@ export function DashboardPage() {
         if (!confirm(`Setujui akun untuk ${userName} sebagai ${roleToAssign}?`)) return;
 
         try {
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    is_approved: true,
-                    role: roleToAssign,
-                    approved_by: user?.fullname
-                })
-                .eq('id', userId);
+            const { data, error } = await supabase.rpc('approve_user', {
+                target_user_id: userId,
+                new_role: roleToAssign,
+                approver_name: user?.fullname || 'Unknown'
+            });
 
             if (error) throw error;
 
-            // Remove from list
-            setPendingUsers(prev => prev.filter(u => u.id !== userId));
-            alert(`Akun ${userName} berhasil disetujui sebagai ${roleToAssign}!`);
+            if (data === true) {
+                // Remove from list
+                setPendingUsers(prev => prev.filter(u => u.id !== userId));
+                alert(`Akun ${userName} berhasil disetujui sebagai ${roleToAssign}!`);
+            } else {
+                alert('Gagal menyetujui akun: Anda tidak memiliki izin.');
+            }
         } catch (err: any) {
             alert('Gagal menyetujui akun: ' + err.message);
         }

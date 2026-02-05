@@ -65,8 +65,7 @@ export function DashboardPage() {
         try {
             const { data, error } = await supabase.rpc('approve_user', {
                 target_user_id: userId,
-                new_role: roleToAssign,
-                approver_name: user?.fullname || 'Unknown'
+                new_role: roleToAssign
             });
 
             if (error) throw error;

@@ -158,30 +158,7 @@ export function LoginPage() {
                     )}
                 </div>
 
-                {/* Dev Helper */}
-                <div className="mt-8 pt-6 border-t border-white/5 text-center">
-                    <p className="text-xs text-grat-500 mb-2">Development Helper</p>
-                    <button
-                        type="button"
-                        onClick={async () => {
-                            const users = [
-                                { e: 'staff@demo.com', p: '123456', n: 'Andi Staff' },
-                                { e: 'spv@demo.com', p: '123456', n: 'Budi Supervisor' },
-                                { e: 'manager@demo.com', p: '123456', n: 'Citra Manager' },
-                                { e: 'owner@demo.com', p: '123456', n: 'Pak Bos Owner' },
-                            ];
 
-                            for (const u of users) {
-                                await signUp(u.e, u.p, u.n);
-                            }
-                            alert('Demo users created! Please check email/auth table or just try login.');
-                            setIsLogin(true);
-                        }}
-                        className="text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg"
-                    >
-                        ⚡ Auto-Create Demo Users
-                    </button>
-                </div>
             </div>
 
             {/* Footer */}

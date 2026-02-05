@@ -38,15 +38,11 @@ export function DashboardPage() {
                 if (locs.data) setLocations(locs.data);
                 if (depts.data) setDepartments(depts.data);
 
-                // Fetch Pending Users (Only for authorized roles)
+                // Fetch Pending Users using RPC function (bypasses RLS)
                 if (['Supervisor', 'Manager', 'Owner'].includes(user?.role || '')) {
-                    const { data: pendings } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('is_approved', false)
-                        .order('created_at', { ascending: false });
+                    const { data: pendings } = await supabase.rpc('get_pending_users');
 
-                    if (pendings) {
+                    if (pendings && pendings.length > 0) {
                         setPendingUsers(pendings);
                         // Initialize selected roles as 'Staff' for everyone
                         const initialRoles: Record<string, string> = {};

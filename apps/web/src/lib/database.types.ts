@@ -253,3 +253,6 @@ export type ProjectType = Tables<'project_types'>
 export type DailyReport = Tables<'daily_reports'>
 export type ReportTask = Tables<'report_tasks'>
 export type ReportMaterial = Tables<'report_materials'>
+export type ReportTaskAttachment = Tables<'report_task_attachments'>
+export type ReportTomorrowPlan = Tables<'report_tomorrow_plans'>
+

@@ -91,9 +91,9 @@ export function useReports(limit?: number, refetchKey?: string) {
 
                 setReports(data as ReportWithRelations[])
                 setError(null)
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Error fetching reports:', err)
-                setError(err.message)
+                setError(err instanceof Error ? err.message : 'Unknown error')
             } finally {
                 if (!isBackground) setIsLoading(false)
             }
@@ -164,14 +164,16 @@ export function useReportStats() {
                 const { data, error } = await query
                 if (error) throw error
 
+                type ReportStat = { id: string; status: string; is_verified: boolean; tasks: { status: string }[] | null }
                 if (data) {
+                    const reports = data as ReportStat[]
                     setStats({
-                        total: data.length,
-                        verified: data.filter((r: any) => r.is_verified).length,
-                        completed: data.filter((r: any) => r.status !== 'draft' && r.tasks?.every((t: any) => t.status === 'Selesai') && r.tasks.length > 0).length,
-                        inProgress: data.filter((r: any) => r.status !== 'draft' && r.tasks?.some((t: any) => t.status === 'Dalam Proses') && !r.tasks?.some((t: any) => t.status === 'Bermasalah')).length,
-                        problematic: data.filter((r: any) => r.tasks?.some((t: any) => t.status === 'Bermasalah')).length,
-                        draft: data.filter((r: any) => r.status === 'draft').length,
+                        total: reports.length,
+                        verified: reports.filter(r => r.is_verified).length,
+                        completed: reports.filter(r => r.status !== 'draft' && r.tasks?.every(t => t.status === 'Selesai') && (r.tasks?.length ?? 0) > 0).length,
+                        inProgress: reports.filter(r => r.status !== 'draft' && r.tasks?.some(t => t.status === 'Dalam Proses') && !r.tasks?.some(t => t.status === 'Bermasalah')).length,
+                        problematic: reports.filter(r => r.tasks?.some(t => t.status === 'Bermasalah')).length,
+                        draft: reports.filter(r => r.status === 'draft').length,
                     })
                 }
             } catch (err) {

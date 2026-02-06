@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
+import { OfflineBanner } from '../common/OfflineBanner';
 
 export function Layout() {
     const location = useLocation();
@@ -8,6 +9,7 @@ export function Layout() {
     return (
         <div className="min-h-screen bg-dark text-gray-100 font-sans">
             <div className="max-w-md mx-auto min-h-screen bg-dark relative shadow-2xl overflow-hidden">
+                <OfflineBanner />
                 {/* Main Content Area */}
                 <main className={`min-h-screen overflow-y-auto ${isDetailPage ? 'pb-0' : 'pb-20'}`}>
                     <Outlet />

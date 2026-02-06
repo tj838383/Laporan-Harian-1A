@@ -38,8 +38,8 @@ export function LoginPage() {
                     setIsLogin(true);
                 }
             }
-        } catch (err: any) {
-            setError(err.message || 'Terjadi kesalahan');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
         } finally {
             setIsLoading(false);
         }

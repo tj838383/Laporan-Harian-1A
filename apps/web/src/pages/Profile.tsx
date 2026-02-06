@@ -24,12 +24,16 @@ export function ProfilePage() {
     const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') !== 'light');
 
     // PWA Install Logic
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    interface BeforeInstallPromptEvent extends Event {
+        prompt: () => Promise<void>;
+        userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+    }
+    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
     useEffect(() => {
-        const handler = (e: any) => {
+        const handler = (e: Event) => {
             e.preventDefault();
-            setDeferredPrompt(e);
+            setDeferredPrompt(e as BeforeInstallPromptEvent);
         };
         window.addEventListener('beforeinstallprompt', handler);
         return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -49,8 +53,9 @@ export function ProfilePage() {
     const totalReports = myReports.length;
 
     // Calculate Completed Tasks
+    type TaskWithStatus = { status: string };
     const completedTasksCount = myReports.reduce((acc, report) => {
-        const finishedTasks = report.tasks?.filter((t: any) => t.status === 'Selesai').length || 0;
+        const finishedTasks = report.tasks?.filter((t: TaskWithStatus) => t.status === 'Selesai').length || 0;
         return acc + finishedTasks;
     }, 0);
 
@@ -78,7 +83,7 @@ export function ProfilePage() {
         try {
             const { error } = await supabase
                 .from('users')
-                .update({ fullname: newName } as any)
+                .update({ fullname: newName })
                 .eq('id', user.id);
 
             if (error) throw error;
@@ -87,8 +92,8 @@ export function ProfilePage() {
             await refreshProfile();
             setEditMode(false);
             alert('Profil berhasil diperbarui! ✅');
-        } catch (error: any) {
-            alert('Gagal update: ' + error.message);
+        } catch (error) {
+            alert('Gagal update: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setIsSaving(false);
         }
@@ -284,7 +289,17 @@ export function ProfilePage() {
     );
 }
 
-function MenuItem({ icon: Icon, label, subtitle, badge, toggle, checked, onClick }: any) {
+interface MenuItemProps {
+    icon: React.ComponentType<{ size: number }>;
+    label: string;
+    subtitle?: string;
+    badge?: string;
+    toggle?: boolean;
+    checked?: boolean;
+    onClick: () => void;
+}
+
+function MenuItem({ icon: Icon, label, subtitle, badge, toggle, checked, onClick }: MenuItemProps) {
     return (
         <button
             onClick={onClick}
@@ -311,7 +326,13 @@ function MenuItem({ icon: Icon, label, subtitle, badge, toggle, checked, onClick
     )
 }
 
-function Toggle({ checked, onChange, readOnly }: any) {
+interface ToggleProps {
+    checked?: boolean;
+    onChange?: () => void;
+    readOnly?: boolean;
+}
+
+function Toggle({ checked, onChange, readOnly }: ToggleProps) {
     return (
         <div
             className={`w-10 h-5 rounded-full relative transition-colors ${checked ? 'bg-primary' : 'bg-gray-600'}`}
